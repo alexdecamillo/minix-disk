@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include "minix.h"
 #include "modules.c"
 
@@ -24,18 +25,22 @@ int main(int argc, char *argv[]){
 
     // the main loop for the minix console
     while (1) {
+        // prompt and get input
         printf("%s", prompt);
         fgets(input, 50, stdin);
 
+        // use buffer string and reset commandLength
         buffer = strdup(input);
-
         commandLength = 0;
+
+        // parse the input by ' ' into an array
         while ( (token = strsep(&buffer, delim)) != NULL ) {
             if (token[strlen(token)-1] == '\n')
                 token[strlen(token)-1] = '\0';
             command[commandLength] = token;
             commandLength++;
         }
+
         runCommand(command, commandLength);
     }
 
@@ -49,21 +54,17 @@ void runCommand(char *c[], int len){
         exit(1);
     } else if(strcmp(c[0], "help") == 0) {
         helpInfo();
-        return;
 
     } else if(strcmp(c[0], "minimount") == 0) {
         if(len >= 2)
             minimount(fd, c[1]);
         else {
-            char *error = "ERROR: You must specify an image to mount\n";
+            char *error = "ERROR: You must specify an image to mount\n\n";
             write(2, error, strlen(error));
-            free(error);
         }
-        return;
 
     } else if(strcmp(c[0], "miniumount") == 0) {
         miniumount(*fd);
-        return;
 
     } else if(strcmp(c[0], "showsuper") == 0) {
         if (*fd < 3) { noMount(); return; }
@@ -74,6 +75,13 @@ void runCommand(char *c[], int len){
 
     } else if(strcmp(c[0], "showzone") == 0) {
         if (*fd < 3) { noMount(); return; }
+        if(len >= 2) {
+            int zone = (int) strtol(c[1], (char **)NULL, 10);
+            showZone(*fd, zone);
+        } else {
+            char *error = "ERROR: You must specify a zone to show\n\n";
+            write(2, error, strlen(error));
+        }
 
     } else if(strcmp(c[0], "showfile") == 0) {
         if (*fd < 3) { noMount(); return; }
@@ -81,8 +89,7 @@ void runCommand(char *c[], int len){
     } else {
         char *error = malloc(100);
         strcat(error, c[0]);
-        strcat(error, ": command not found. Use the command 'help' for a list of valid commands\n");
+        strcat(error, ": command not found. Use the command 'help' for a list of valid commands\n\n");
         write(2, error, strlen(error));
-        free(error);
     }
 }
