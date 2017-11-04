@@ -59,7 +59,7 @@ void runCommand(char *c[], int len){
         if(len >= 2)
             minimount(fd, c[1]);
         else {
-            char *error = "ERROR: You must specify an image to mount\n\n";
+            char *error = "ERROR: You must specify an image to mount\n";
             write(2, error, strlen(error));
         }
 
@@ -79,17 +79,18 @@ void runCommand(char *c[], int len){
             int zone = (int) strtol(c[1], (char **)NULL, 10);
             showZone(*fd, zone);
         } else {
-            char *error = "ERROR: You must specify a zone to show\n\n";
+            char *error = "ERROR: You must specify a zone to show\n";
             write(2, error, strlen(error));
         }
 
     } else if(strcmp(c[0], "showfile") == 0) {
         if (*fd < 3) { noMount(); return; }
+        showFile(*fd, c[1]);
 
     } else {
         char *error = malloc(100);
         strcat(error, c[0]);
-        strcat(error, ": command not found. Use the command 'help' for a list of valid commands\n\n");
+        strcat(error, ": command not found. Use the command 'help' for a list of valid commands\n");
         write(2, error, strlen(error));
     }
 }
