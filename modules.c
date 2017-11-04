@@ -68,7 +68,39 @@ void superblock(int fd) {
 }
 
 void helpInfo() {
-    // print the information regarding possible commands
+  printf("\n-------------- COMMANDS --------------\n\n");
+
+  printf("  minimount\n");
+  printf("    DESCRIPTION:     Mount a local minix disk.\n");
+  printf("    USAGE:           minimount <imagefile.img>\n");
+
+  printf("  miniumount\n");
+  printf("    DESCRIPTION:     Unmounts the mounted minix disk.\n");
+  printf("    USAGE:           miniumount\n");
+
+  printf("  showsuper\n");
+  printf("    DESCRIPTION:     Lists the information of the super block\n");
+  printf("    USAGE:           showsuper\n");
+
+  printf("  traverse\n");
+  printf("    DESCRIPTION:     Lists the contents of the root directory, and prints detailed information if [-l] is on.\n");
+  printf("    USAGE:           traverse, traverse -l\n");
+
+  printf("  showzone\n");
+  printf("    DESCRIPTION:     Show the ASCII content of a specified zone number.\n");
+  printf("    USAGE:           showzone <zonenumber>\n");
+
+  printf("  help\n");
+  printf("    DESCRIPTION:     Displays all available commands.\n");
+  printf("    USGAE:           help\n");
+
+  printf("  showfile\n");
+  printf("    DESCRPTION:     Show the contents of a file.\n");
+  printf("    USAGE:          showfile <filename>\n");
+
+  printf("  quit\n");
+  printf("    DESCRIPTION:     quits minix shell.\n");
+  printf("    USAGE:           quit\n");
 }
 
 void showZone(int fd, int zone) {
