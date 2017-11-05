@@ -39,39 +39,37 @@ void miniumount(int fd) {
 }
 
 void traverse( int fd ){
+    char *buf = (char *)  calloc(1024,1);
+    struct minix_dir_entry *direntp;
 
-  char *buf = (char *)  calloc(1024,1);
-  struct minix_dir_entry *direntp;
+    //fd=open(fd, O_RDONLY);
 
-
-  //fd=open(fd, O_RDONLY);
- 
-  lseek(fd, 5120, SEEK_SET);
-  read(fd, buf, 32);
+    lseek(fd, 5120, SEEK_SET);
+    read(fd, buf, 32);
     struct minix_inode *rootInode=(struct minix_inode *) buf;
-  free(buf);
-  buf=(char*) calloc(16,1);
+    free(buf);
+    buf=(char*) calloc(16,1);
 
-  int i, j;
-  for (i=0; i<7 ; i++){//loop through the first 7 zones (all zones)
-    for(j=0 ; j<1024 ; j=j+16){ //loop through every two bytes
-      if (rootInode->i_zone[i] == '\0')
-        break;
-      else
-        lseek(fd, (rootInode->i_zone[i] * 1024) + j, SEEK_SET); 
-      read(fd, buf, 16);
-      if(strlen(buf)>0){
-        direntp = (struct minix_dir_entry *) buf;
-        if (strcmp(direntp->name, ".") !=0 && strcmp(direntp->name, "..") !=0){
-          char *name= (char *) calloc(100,1);
-          name=direntp->name;
-          write(1, name, strlen(name));
-          write(1, "\n", 1);
-        }
-      }
-    }   
-  }
-  close(fd);
+    int i, j;
+    for (i=0; i<7 ; i++){//loop through the first 7 zones (all zones)
+        //for(j=0 ; j<=1024 ;){
+            if (rootInode->i_zone[i] == '\0')
+                break;
+            else
+                lseek(fd, (rootInode->i_zone[i] * 1024), SEEK_SET);
+
+            read(fd, buf, 16);
+            if(strlen(buf)>0){
+                direntp = (struct minix_dir_entry *) buf;
+                if (strcmp(direntp->name, ".") !=0 && strcmp(direntp->name, "..") !=0){
+                    char *name= (char *) calloc(100,1);
+                    name=direntp->name;
+                    write(0, name, strlen(name));
+                    write(0, "\n", 1);
+                }
+            }
+        //}
+    }
 }
 
 // prints an error if commands that require a mounted image are called without a
@@ -108,7 +106,7 @@ void helpInfo() {
 
   printf("  minimount\n");
   printf("    DESCRIPTION:     Mount a local minix disk.\n");
-  printf("    USAGE:           minimount <imagefile.img>\n");
+  printf("    USAGE:           minimount <imagefile>\n");
 
   printf("  miniumount\n");
   printf("    DESCRIPTION:     Unmounts the mounted minix disk.\n");
