@@ -16,21 +16,43 @@ main  (){
 	return 0;
 }
  
-void traverse( char *dirname ){
-  DIR *dir_ptr;
-  struct dirent *direntp;
- 
-  if ( (dir_ptr=opendir(dirname))==NULL){
-    printf("Cannot open %s\n", dirname);
-  }else{
-    while( (direntp=readdir(dir_ptr)) != NULL)
-      printf("%s\n", direntp->d_name);
-    
-    closedir(dir_ptr);
-  }
- 
-}
+void traverse( int fd ){
 
+  char *buf = (char *)  calloc(1024,1);
+  struct minix_dir_entry *direntp;
+
+
+  //fd=open(fd, O_RDONLY);
+ 
+  lseek(fd, 1024*4, SEEK_SET); //pointed to root dir
+  read(fd, buf, 32);
+    struct minix_inode *rootInode=(struct minix_inode *) buf;
+  free(buf);
+  buf=(char*) calloc(16,1);
+  char *name= (char *) calloc(100,1);
+  int i, j;
+  for (i=0; i<7 ; i++){//loop through the first 7 zones (all zones)
+    for(j=0 ; j<1024 ; j=j+16){ //loop through every two bytes
+      if ((rootInode->i_zone[i]) == '\0')
+        //goto Label;
+      else;
+        lseek(fd, (rootInode->i_zone[i] * 1024) + j, SEEK_SET); 
+      read(fd, buf, 16);
+      if(strlen(buf)>0){
+        direntp = (struct minix_dir_entry *) buf;
+        if (strcmp(direntp->name, ".") !=0 && strcmp(direntp->name, "..") !=0){
+          
+          name=direntp->name;
+          write(1, name, strlen(name));
+          write(1, "\n", 1);
+          //printf("%s\n", name);
+        //}
+      }
+    }   
+  }
+  
+  close(fd);
+}
 LongList(char *fname, struct stat *buf, char array[]){
   DIR *dir_ptr;
   struct dirent *direntp;
@@ -60,8 +82,8 @@ void permissionBits(int bits){
 	if (binaryString[0] == '1'){ //it's regular file
 		permissionSrting[0] = "-" ;
 	}else{ if (binaryString[1] == '1'){//it's a directory
-					permissionSrting[0] = "d" ;
-	     }
+		permissionSrting[0] = "d" ;
+	}
   }
 	//checks the 9 permission bits (rwx)
 	for (i=0; i<9 ; i++){
