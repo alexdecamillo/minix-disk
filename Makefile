@@ -1,18 +1,13 @@
 
 cc=gcc
-CFLAGS = -std=gnu99 -Wall -g -I.
+CFLAGS =-I.
 DEPS = minix.h
-OBJ = main.c modules.c
+ 
 
 %.o: %.c %(DEPS)
 	%(CC) -c -o %@ $< $(CFLAGS)
 
-main: $(OBJ)
-		$(CC) -o $@ $^ $(CFLAGS)
+main: main.o
+		$(CC) -o main main.o $(CFLAGS)
 
-run:
-	./main
 
-.PHONY: clean
-clean:
-	rm -f *.o main
