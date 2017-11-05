@@ -72,6 +72,7 @@ void runCommand(char *c[], int len){
 
     } else if(strcmp(c[0], "traverse") == 0) {
         if (*fd < 3) { noMount(); return; }
+        traverse(^fd);
 
     } else if(strcmp(c[0], "showzone") == 0) {
         if (*fd < 3) { noMount(); return; }
