@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 #include "minix.h"
 #include "modules.c"
 
@@ -64,7 +65,7 @@ void runCommand(char *c[], int len){
         }
 
     } else if(strcmp(c[0], "miniumount") == 0) {
-        miniumount(*fd);
+        miniumount(fd);
 
     } else if(strcmp(c[0], "showsuper") == 0) {
         if (*fd < 3) { noMount(); return; }
@@ -72,7 +73,16 @@ void runCommand(char *c[], int len){
 
     } else if(strcmp(c[0], "traverse") == 0) {
         if (*fd < 3) { noMount(); return; }
-        traverse(*fd);
+        if(len >= 2) {
+            if (strcmp(c[1], "-l") == 0) {
+                traverse(*fd, 1);
+            } else {
+                char *error = "ERROR: Invalid argument for command 'traverse'\n";
+                write(2, error, strlen(error));
+            }
+        } else {
+            traverse(*fd, 0);
+        }
 
     } else if(strcmp(c[0], "showzone") == 0) {
         if (*fd < 3) { noMount(); return; }

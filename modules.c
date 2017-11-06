@@ -20,12 +20,12 @@ void minimount(int *fd, char *filename) {
 }
 
 // closes the passed file descriptor if it is opened
-void miniumount(int fd) {
+void miniumount(int *fd) {
     // if the file descriptor isn't at least 3, there's nothing to unmount
-    if (fd >= 3) {
-        int umount = close(fd);
+    if (*fd >= 3) {
+        int umount = close(*fd);
         if (umount == 0) {
-            fd = -1;
+            *fd = -1;
             char *response = "Image sucessfully unmounted\n";
             write(0, response, strlen(response));
         } else {
@@ -38,37 +38,81 @@ void miniumount(int fd) {
     }
 }
 
-void traverse( int fd ){
-    char *buf = (char *)  calloc(1024,1);
-    struct minix_dir_entry *direntp;
+void traverse(int fd, int longList){
+    struct minix_inode *rootNode = malloc(sizeof(INODE));
+    struct minix_dir_entry *direntp = malloc(sizeof(DIR_ENTRY));
+    struct minix_inode *iNode = malloc(sizeof(INODE));
 
-    //fd=open(fd, O_RDONLY);
+    // move to root node
+    lseek(fd, (1024*5), SEEK_SET);
+    read(fd, rootNode, 32);
 
-    lseek(fd, 5120, SEEK_SET);
-    read(fd, buf, 32);
-    struct minix_inode *rootInode=(struct minix_inode *) buf;
-    free(buf);
-    buf=(char*) calloc(16,1);
+    for (int i=0; i<7 ; i++){
+        if (rootNode->i_zone[i] == '\0')
+            break;
+        else
+            lseek(fd, (rootNode->i_zone[i] * 1024), SEEK_SET);
 
-    int i, j;
-    for (i=0; i<7 ; i++){//loop through the first 7 zones (all zones)
-        //for(j=0 ; j<=1024 ;){
-            if (rootInode->i_zone[i] == '\0')
-                break;
-            else
-                lseek(fd, (rootInode->i_zone[i] * 1024), SEEK_SET);
+        int bytesRead = 0;
+        while (bytesRead < 1024) {
+            lseek(fd, ((rootNode->i_zone[i] * 1024) + bytesRead), SEEK_SET);
+            bytesRead += read(fd, direntp, 16);
+            if (strcmp(direntp->name, ".") !=0 && strcmp(direntp->name, "..") !=0 && strlen(direntp->name) != 0) {
+                if (longList) {
+                    // get inode
+                    int iNum = direntp->inode;
+                    lseek(fd, ((1024*5)+((iNum-1)*sizeof(INODE))), SEEK_SET);
+                    read(fd, iNode, sizeof(INODE));
 
-            read(fd, buf, 16);
-            if(strlen(buf)>0){
-                direntp = (struct minix_dir_entry *) buf;
-                if (strcmp(direntp->name, ".") !=0 && strcmp(direntp->name, "..") !=0){
-                    char *name= (char *) calloc(100,1);
-                    name=direntp->name;
-                    write(0, name, strlen(name));
-                    write(0, "\n", 1);
+                    // get directory and permission bits
+                    int mode = iNode->i_mode;
+
+                    // directory
+                    if (mode & S_IFDIR) printf("d");
+                    else printf("-");
+
+                    // user
+                    if (mode & S_IRUSR) printf("r");
+                    else printf("-");
+                    if (mode & S_IWUSR) printf("w");
+                    else printf("-");
+                    if (mode & S_IXUSR) printf("x");
+                    else printf("-");
+
+                    // group
+                    if (mode & S_IRGRP) printf("r");
+                    else printf("-");
+                    if (mode & S_IWGRP) printf("w");
+                    else printf("-");
+                    if (mode & S_IXGRP) printf("x");
+                    else printf("-");
+
+                    // others
+                    if (mode & S_IROTH) printf("r");
+                    else printf("-");
+                    if (mode & S_IWOTH) printf("w");
+                    else printf("-");
+                    if (mode & S_IXOTH) printf("x ");
+                    else printf("- ");
+
+                    // get rest of info from inode and print
+                    int userID = iNode->i_uid;
+                    int fileSize = iNode->i_size;
+                    time_t lastMod = (time_t)iNode->i_time;
+
+                    // convert time to specified format before printing
+                    //char *timeMod = malloc(20);
+                    char timeMod[20];
+                    struct tm *ts = localtime(&lastMod);
+                    strftime(timeMod, sizeof(timeMod), "%b %d %Y ", ts);
+
+                    // print stuffs
+                    printf("%d %d %s %s\n", userID, fileSize, timeMod, direntp->name);
+                } else {
+                    printf("%s\n", direntp->name);
                 }
             }
-        //}
+        }
     }
 }
 
@@ -97,12 +141,12 @@ void superblock(int fd) {
         printf("%s%d\n", "max size: 	        ", sb->s_max_size);
         printf("%s%d\n", "magic: 	                ", sb->s_magic);
         printf("%s%d\n", "state:                  ", sb->s_state);
-        printf("%s%d\n\n", "zones:                  ", sb->s_zones);
+        printf("%s%d\n", "zones:                  ", sb->s_zones);
     }
 }
 
 void helpInfo() {
-  printf("\n-------------- COMMANDS --------------\n\n");
+  printf("-------------- COMMANDS --------------\n");
 
   printf("  minimount\n");
   printf("    DESCRIPTION:     Mount a local minix disk.\n");
@@ -185,10 +229,8 @@ void showFile(int fd, char* filename) {
 
         for (short i=0; i < 6; i++) {
             bytesRead = 0;
-            if (rootNode->i_zone[i] == '\0') {
-                char *error = malloc(20);
+            if (rootNode->i_zone[i] == '\0')
                 continue;
-            }
 
             lseek(fd, rootNode->i_zone[i]*1024, SEEK_SET);
 
@@ -225,9 +267,9 @@ void showFile(int fd, char* filename) {
                     // Cycle through data zones 1-7 (inode->i_zone[0] - inode->i_zone[6])
                     // and print of the data as a hexadecimal number
                     char *data = malloc(3);
-                    bytesRead = 0;
 
                     for (int i=0; i < 7; i++) {
+                        bytesRead = 0;
                         if (inode->i_zone[i] == '\0')
                             break;
                         lseek(fd, inode->i_zone[i]*1024, SEEK_SET);
